@@ -24,12 +24,12 @@ public class ExcelMerger {
 
     public void generateGpx(String file1, String file2) {
 //        String file1Path = ExcelMerger.class.getClassLoader().getResource(file1).getPath();
-//        String file2Path = ExcelMerger.class.getClassLoader().getResource(file2).getPath();
+        String file2Path = ExcelMerger.class.getClassLoader().getResource(file2).getPath();
         String outputFilePath = "output.gpx";
         String file1ColumnName = "Business Partner";
         String file2ColumnName = "Bp";
         Map<String, Map<String, Object>> file1Data = readExcelFile(file1, file1ColumnName);
-        Map<String, Map<String, Object>> file2Data = readExcelFile(file2, file2ColumnName);
+        Map<String, Map<String, Object>> file2Data = readExcelFile(file2Path, file2ColumnName);
         List<Map<String, Object>> mergedData = new ArrayList();
         Iterator var9 = file1Data.keySet().iterator();
 
