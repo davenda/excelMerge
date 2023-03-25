@@ -1,16 +1,16 @@
 package com.example.excelapp;
 
 import java.io.*;
+import java.security.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import org.apache.poi.EncryptedDocumentException;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.ss.usermodel.*;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+
+import static com.fasterxml.jackson.databind.type.LogicalType.DateTime;
 
 public class ExcelMerger {
 
@@ -19,7 +19,7 @@ public class ExcelMerger {
     }
 
     public void generateGpx(String file1, String gps) throws IOException {
-//        String file1Path = ExcelMerger.class.getClassLoader().getResource(file1).getPath();
+        System.out.println("ExcelMerger.generateGpx : " + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
         String filePath = System.getProperty("user.dir")
                 + File.separator
                 + "BOOT-INF/classes"
@@ -35,17 +35,21 @@ public class ExcelMerger {
         String outputFilePath = "output.gpx";
         String file1ColumnName = "Business Partner";
         String file2ColumnName = "Bp";
-
+        System.out.println("ExcelMerger.generateGpx : line 38: " + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
         Map<String, Map<String, Object>> file1Data = readExcelFile(file1, file1ColumnName);
+        System.out.println("ExcelMerger.generateGpx : line 40: " + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
         Map<String, Map<String, Object>> file2Data = readExcelFile(gpsPath, file2ColumnName);
+        System.out.println("ExcelMerger.generateGpx : line 42: " + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
         List<Map<String, Object>> mergedData = new ArrayList();
         Iterator var9 = file1Data.keySet().iterator();
 
         Map row;
+        int count = 0;
         while(var9.hasNext()) {
             String commonColumnValue = (String)var9.next();
             if (file2Data.containsKey(commonColumnValue)) {
-                System.out.println("match");
+                count++;
+                //System.out.println("match");
                 row = (Map)file1Data.get(commonColumnValue);
                 Map<String, Object> file2Row = (Map)file2Data.get(commonColumnValue);
                 row.remove("Arrears");
@@ -89,7 +93,7 @@ public class ExcelMerger {
                 mergedData.add(row);
             }
         }
-
+        System.out.println("the count is : " + count);
         try {
             PrintWriter writer = new PrintWriter(new File(outputFilePath));
 
@@ -110,9 +114,10 @@ public class ExcelMerger {
                     values.add(",");
                     values.add(row.get("Business Partner").toString());
                     values.add(",");
-                    values.add(String.valueOf(Integer.parseInt(row.get("Meter No").toString())));
+//                    values.add(String.valueOf(Integer.parseInt(row.get("Meter No").toString())));
+                    values.add(row.get("Meter No").toString());
                     values.add(",");
-                    values.add(row.get("Invoice Amount").toString());
+                    values.add(row.get("Invoice Amount").toString().trim());
                     values.add("</name>\n");
                     values.add("\t<extensions>\n\t\t<osmand:color>#00842b</osmand:color>\n\t\t<osmand:icon>special_star</osmand:icon>\n\t\t<osmand:background>circle</osmand:background>\n\t</extensions>\n</wpt>");
                     writer.println(String.join("", values));
@@ -126,7 +131,7 @@ public class ExcelMerger {
 
                 throw var14;
             }
-
+            System.out.println("ExcelMerger.generateGpx : line 132: " + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
             writer.close();
         } catch (FileNotFoundException var15) {
             var15.printStackTrace();
@@ -155,25 +160,37 @@ public class ExcelMerger {
                 Sheet sheet = workbook.getSheetAt(0);
                 Row headerRow = sheet.getRow(0);
                 int commonColumnIndex = -1;
+                int payStatus = 1;
+                int billMonth = 1;
 
                 int i;
                 for(i = 0; i < headerRow.getLastCellNum(); ++i) {
                     Cell cell = headerRow.getCell(i);
                     if (cell.getStringCellValue().equalsIgnoreCase(commonColumnName)) {
                         commonColumnIndex = i;
-                        break;
+                    }
+                    else if(cell.getStringCellValue().equalsIgnoreCase("Column Status")){
+                        payStatus = i;
+                    }
+                    else if(cell.getStringCellValue().equalsIgnoreCase("Bill Month")){
+                        billMonth = i;
                     }
                 }
 
                 if (commonColumnIndex == -1) {
                     throw new RuntimeException("Column not found: " + commonColumnName);
                 }
-
+                int paidCount = 0;
+                int rowCount = 0;
                 for(i = 1; i <= sheet.getLastRowNum(); ++i) {
+                    rowCount++;
                     Row row = sheet.getRow(i);
-                    if (row != null) {
+                    if (row != null && !("PAID".equalsIgnoreCase(row.getCell(payStatus).getStringCellValue())) && ("YEKATIT-2015".equalsIgnoreCase(row.getCell(billMonth).getStringCellValue())) || billMonth == 1 ){
+                        if(!"NOT PAID".equalsIgnoreCase(row.getCell(payStatus).getStringCellValue()) && commonColumnName != "Bp"){
+                            System.out.println(row.getCell(payStatus).getStringCellValue());
+                        }
                         Map<String, Object> rowData = new HashMap();
-
+                        paidCount++;
                         for(int j = 0; j < headerRow.getLastCellNum(); ++j) {
                             Cell cell = row.getCell(j);
                             if (cell != null) {
@@ -194,15 +211,14 @@ public class ExcelMerger {
                         Cell commonColumnCell = row.getCell(commonColumnIndex);
                         if (commonColumnCell != null) {
                             Object commonColumnValue;
+//                            System.out.println(commonColumnCell + " " + commonColumnCell.getCellType());
                             switch (commonColumnCell.getCellType()) {
                                 case STRING:
                                     commonColumnValue = commonColumnCell.getStringCellValue();
                                     break;
                                 case NUMERIC:
-                                    commonColumnValue = commonColumnCell.getNumericCellValue();
-                                    break;
-                                case BOOLEAN:
-                                    commonColumnValue = commonColumnCell.getBooleanCellValue();
+                                    DataFormatter df = new DataFormatter();
+                                    commonColumnValue = df.formatCellValue(commonColumnCell);
                                     break;
                                 default:
                                     commonColumnValue = null;
@@ -212,6 +228,8 @@ public class ExcelMerger {
                         }
                     }
                 }
+                System.out.println(commonColumnName + " row count : " + rowCount);
+                System.out.println(commonColumnName + " paid count: " + paidCount);
             } catch (Throwable var14) {
                 if (workbook != null) {
                     try {
