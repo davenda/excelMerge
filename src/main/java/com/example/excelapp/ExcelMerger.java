@@ -1,20 +1,16 @@
 package com.example.excelapp;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
+
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 
 public class ExcelMerger {
 
@@ -22,14 +18,26 @@ public class ExcelMerger {
 
     }
 
-    public void generateGpx(String file1, String file2) {
+    public void generateGpx(String file1, String gps) throws IOException {
 //        String file1Path = ExcelMerger.class.getClassLoader().getResource(file1).getPath();
-        String file2Path = ExcelMerger.class.getClassLoader().getResource(file2).getPath();
+        String filePath = System.getProperty("user.dir")
+                + File.separator
+                + "BOOT-INF/classes"
+                + File.separator + "g.xlsx";
+        System.out.println("filePath: " + filePath);
+        String name = getClass().getResource("/g.xlsx").getPath();
+        System.out.println(name);
+        Resource resource = new ClassPathResource("filename.txt");
+        System.out.println("new ClassPathResource " + resource.getDescription());
+        String gpsPath = ExcelMerger.class.getClassLoader().getResource(gps).getPath();
+        System.out.println("file1 : " + file1);
+        System.out.println("gpsPath : " + gpsPath);
         String outputFilePath = "output.gpx";
         String file1ColumnName = "Business Partner";
         String file2ColumnName = "Bp";
+
         Map<String, Map<String, Object>> file1Data = readExcelFile(file1, file1ColumnName);
-        Map<String, Map<String, Object>> file2Data = readExcelFile(file2Path, file2ColumnName);
+        Map<String, Map<String, Object>> file2Data = readExcelFile(gpsPath, file2ColumnName);
         List<Map<String, Object>> mergedData = new ArrayList();
         Iterator var9 = file1Data.keySet().iterator();
 
@@ -126,13 +134,23 @@ public class ExcelMerger {
 
     }
 
-    private static Map<String, Map<String, Object>> readExcelFile(String filePath, String commonColumnName) {
+    private Map<String, Map<String, Object>> readExcelFile(String filePath, String commonColumnName) {
         Map<String, Map<String, Object>> data = new HashMap();
+        Workbook workbook = null;
 
         try {
-            System.out.println(filePath + " " + commonColumnName);
-            Workbook workbook = WorkbookFactory.create(new File(filePath));
-
+            System.out.println("ExcelMerger.readExcelFile :" + filePath + " " + commonColumnName);
+            if("Bp".equalsIgnoreCase(commonColumnName)){
+                InputStream in = this.getClass().getResourceAsStream("/g.xlsx");
+                if(in != null) {
+                    workbook = WorkbookFactory.create(in);
+                    Sheet sheet = workbook.getSheetAt(0);
+                    System.out.println(sheet.getSheetName());
+                }
+            }
+            else {
+                workbook = WorkbookFactory.create(new File(filePath));
+            }
             try {
                 Sheet sheet = workbook.getSheetAt(0);
                 Row headerRow = sheet.getRow(0);
