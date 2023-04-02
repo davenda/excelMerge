@@ -43,7 +43,7 @@ public class BotService extends TelegramLongPollingBot {
             String chatId = update.getMessage().getChatId().toString();
             // send a reply message to the chat
             System.out.println(messageText);
-            sendTextMessage(chatId, "You said: " + messageText);
+            sendTextMessage(chatId, "You said : " + messageText);
         }
 
         if(update.hasMessage() && update.getMessage().hasDocument()){
