@@ -1,6 +1,0 @@
-<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
-<gpx version="1.1" creator="GDAL 3.0.4" xmlns="http://www.topografix.com/GPX/1/1" xmlns:osmand="https://osmand.net" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
-  <metadata>
-    <bounds minlat="9.3059081" minlon="42.1351272" maxlat="9.3102854" maxlon="42.1381259" />
-  </metadata>
-

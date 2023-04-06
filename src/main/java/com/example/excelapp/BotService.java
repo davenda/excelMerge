@@ -50,21 +50,13 @@ public class BotService extends TelegramLongPollingBot {
             String chatId = update.getMessage().getChatId().toString();
             Document document = update.getMessage().getDocument();
             if(document.getFileName().endsWith("xlsx") ||document.getFileName().endsWith("XLSX")){
-//                String fileId = extractFileId(update.getMessage().getText());
                 String fileId = document.getFileId();
+                String fileName = document.getFileName();
                 sendTextMessage(chatId, fileId);
                 if (fileId != null) {
                     InputStream fileStream = downloadExcelFile(fileId);
                     if (fileStream != null) {
                         try {
-//                            Workbook workbook = WorkbookFactory.create(fileStream);
-//                            Sheet sheet = workbook.getSheetAt(0);
-//                            Row row = sheet.createRow(sheet.getLastRowNum() + 1);
-//                            sendTextMessage(chatId,sheet.getSheetName());
-//                            Cell cell1 = row.createCell(0);
-//                            Cell cell2 = row.createCell(1);
-//                            cell1.setCellValue("New data 1");
-//                            cell2.setCellValue("New data 2");
                             File file = new File("samp.xlsx");
                             FileOutputStream outputStream = new FileOutputStream(file);
                             byte[] buffer = new byte[4096];
@@ -72,16 +64,12 @@ public class BotService extends TelegramLongPollingBot {
                             while ((bytesRead = fileStream.read(buffer)) != -1) {
                                 outputStream.write(buffer, 0, bytesRead);
                             }
-
                             outputStream.close();
                             fileStream.close();
-
                             ExcelMerger excelMerger = new ExcelMerger();
-                            excelMerger.generateGpx("samp.xlsx", "g.xlsx");
-//                            PrintWriter writer = new PrintWriter("something.txt");
-//                            writer.println(sheet.getSheetName());
-//                            writer.close();
-                            SendDocument document1 = new SendDocument(chatId, new InputFile(new File("output.gpx")));
+                            excelMerger.generateGpx("samp.xlsx", fileName);
+                            String outputFileName = fileName.substring(0, fileName.length() - 4) + "gpx";
+                            SendDocument document1 = new SendDocument(chatId, new InputFile(new File(outputFileName)));
                             execute(document1);
                         } catch (Exception e) {
                             e.printStackTrace();

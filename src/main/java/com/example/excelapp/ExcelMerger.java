@@ -1,16 +1,13 @@
 package com.example.excelapp;
 
 import java.io.*;
-import java.security.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.*;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
+import org.joda.time.DateTime;
+import org.joda.time.chrono.EthiopicChronology;
 
-import static com.fasterxml.jackson.databind.type.LogicalType.DateTime;
 
 public class ExcelMerger {
 
@@ -18,28 +15,11 @@ public class ExcelMerger {
 
     }
 
-    public void generateGpx(String file1, String gps) throws IOException {
-        System.out.println("ExcelMerger.generateGpx : " + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
-        String filePath = System.getProperty("user.dir")
-                + File.separator
-                + "BOOT-INF/classes"
-                + File.separator + "g.xlsx";
-        System.out.println("filePath: " + filePath);
-        String name = getClass().getResource("/g.xlsx").getPath();
-        System.out.println(name);
-        Resource resource = new ClassPathResource("filename.txt");
-        System.out.println("new ClassPathResource " + resource.getDescription());
-        String gpsPath = ExcelMerger.class.getClassLoader().getResource(gps).getPath();
-        System.out.println("file1 : " + file1);
-        System.out.println("gpsPath : " + gpsPath);
-        String outputFilePath = "output.gpx";
+    public void generateGpx(String file1, String filename) throws IOException {
+        String outputFilePath = filename.substring(0, filename.length() - 4) + "gpx";
         String file1ColumnName = "Business Partner";
-        String file2ColumnName = "Bp";
-        System.out.println("ExcelMerger.generateGpx : line 38: " + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
         Map<String, Map<String, Object>> file1Data = readExcelFile(file1, file1ColumnName);
-        System.out.println("ExcelMerger.generateGpx : line 40: " + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
-        Map<String, Map<String, Object>> file2Data = readExcelFile(gpsPath, file2ColumnName);
-        System.out.println("ExcelMerger.generateGpx : line 42: " + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+        Map<String, Map<String, Object>> file2Data = readGpsData();
         List<Map<String, Object>> mergedData = new ArrayList();
         Iterator var9 = file1Data.keySet().iterator();
 
@@ -49,7 +29,6 @@ public class ExcelMerger {
             String commonColumnValue = (String)var9.next();
             if (file2Data.containsKey(commonColumnValue)) {
                 count++;
-                //System.out.println("match");
                 row = (Map)file1Data.get(commonColumnValue);
                 Map<String, Object> file2Row = (Map)file2Data.get(commonColumnValue);
                 row.remove("Arrears");
@@ -93,7 +72,7 @@ public class ExcelMerger {
                 mergedData.add(row);
             }
         }
-        System.out.println("the count is : " + count);
+        System.out.println("The count is : " + count);
         try {
             PrintWriter writer = new PrintWriter(new File(outputFilePath));
 
@@ -131,7 +110,6 @@ public class ExcelMerger {
 
                 throw var14;
             }
-            System.out.println("ExcelMerger.generateGpx : line 132: " + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
             writer.close();
         } catch (FileNotFoundException var15) {
             var15.printStackTrace();
@@ -139,30 +117,20 @@ public class ExcelMerger {
 
     }
 
-    private Map<String, Map<String, Object>> readExcelFile(String filePath, String commonColumnName) {
+    private Map<String, Map<String, Object>> readExcelFile(String filePath, String commonColumnName) throws IOException {
         Map<String, Map<String, Object>> data = new HashMap();
         Workbook workbook = null;
 
         try {
-            System.out.println("ExcelMerger.readExcelFile :" + filePath + " " + commonColumnName);
-            if("Bp".equalsIgnoreCase(commonColumnName)){
-                InputStream in = this.getClass().getResourceAsStream("/g.xlsx");
-                if(in != null) {
-                    workbook = WorkbookFactory.create(in);
-                    Sheet sheet = workbook.getSheetAt(0);
-                    System.out.println(sheet.getSheetName());
-                }
-            }
-            else {
-                workbook = WorkbookFactory.create(new File(filePath));
-            }
+            workbook = WorkbookFactory.create(new File(filePath));
             try {
                 Sheet sheet = workbook.getSheetAt(0);
                 Row headerRow = sheet.getRow(0);
                 int commonColumnIndex = -1;
-                int payStatus = 1;
-                int billMonth = 1;
-
+                int payStatus = -1;
+                int billMonth = -1;
+                String lastMonth = getLastMonth("21.03.2023.xlsx");
+                System.out.println(lastMonth);
                 int i;
                 for(i = 0; i < headerRow.getLastCellNum(); ++i) {
                     Cell cell = headerRow.getCell(i);
@@ -185,45 +153,20 @@ public class ExcelMerger {
                 for(i = 1; i <= sheet.getLastRowNum(); ++i) {
                     rowCount++;
                     Row row = sheet.getRow(i);
-                    if (row != null && !("PAID".equalsIgnoreCase(row.getCell(payStatus).getStringCellValue())) && ("YEKATIT-2015".equalsIgnoreCase(row.getCell(billMonth).getStringCellValue())) || billMonth == 1 ){
-                        if(!"NOT PAID".equalsIgnoreCase(row.getCell(payStatus).getStringCellValue()) && commonColumnName != "Bp"){
-                            System.out.println(row.getCell(payStatus).getStringCellValue());
-                        }
+                    if (row != null && "NOT PAID".equalsIgnoreCase(row.getCell(payStatus).getStringCellValue()) && lastMonth.equalsIgnoreCase(row.getCell(billMonth).getStringCellValue())){
                         Map<String, Object> rowData = new HashMap();
                         paidCount++;
                         for(int j = 0; j < headerRow.getLastCellNum(); ++j) {
                             Cell cell = row.getCell(j);
                             if (cell != null) {
                                 String headerValue = headerRow.getCell(j).getStringCellValue();
-                                switch (cell.getCellType()) {
-                                    case STRING:
-                                        rowData.put(headerValue, cell.getStringCellValue());
-                                        break;
-                                    case NUMERIC:
-                                        rowData.put(headerValue, cell.getNumericCellValue());
-                                        break;
-                                    case BOOLEAN:
-                                        rowData.put(headerValue, cell.getBooleanCellValue());
-                                }
+                                rowData.put(headerValue, getCellValue(cell));
                             }
                         }
 
                         Cell commonColumnCell = row.getCell(commonColumnIndex);
                         if (commonColumnCell != null) {
-                            Object commonColumnValue;
-//                            System.out.println(commonColumnCell + " " + commonColumnCell.getCellType());
-                            switch (commonColumnCell.getCellType()) {
-                                case STRING:
-                                    commonColumnValue = commonColumnCell.getStringCellValue();
-                                    break;
-                                case NUMERIC:
-                                    DataFormatter df = new DataFormatter();
-                                    commonColumnValue = df.formatCellValue(commonColumnCell);
-                                    break;
-                                default:
-                                    commonColumnValue = null;
-                            }
-
+                            Object commonColumnValue = getCellValue(commonColumnCell);
                             data.put(commonColumnValue.toString(), rowData);
                         }
                     }
@@ -251,4 +194,124 @@ public class ExcelMerger {
 
         return data;
     }
+
+    private Object getCellValue(Cell commonColumnCell) {
+        Object commonColumnValue;
+        switch (commonColumnCell.getCellType()) {
+            case STRING:
+                commonColumnValue = commonColumnCell.getStringCellValue();
+                break;
+            case NUMERIC:
+                DataFormatter df = new DataFormatter();
+                commonColumnValue = df.formatCellValue(commonColumnCell);
+                break;
+            default:
+                commonColumnValue = null;
+        }
+        return commonColumnValue;
+    }
+
+    private Map<String, Map<String, Object>> readGpsData() {
+        Map<String, Map<String, Object>> data = new HashMap();
+        Workbook workbook = null;
+        String commonColumnName = "Bp";
+
+        try {
+            InputStream in = this.getClass().getResourceAsStream("/bb.xlsx");
+            if(in != null) {
+                workbook = WorkbookFactory.create(in);
+            }
+            try {
+                Sheet sheet = workbook.getSheetAt(0);
+                Row headerRow = sheet.getRow(0);
+                int commonColumnIndex = -1;
+                String lastMonth = getLastMonth("21.03.2023.xlsx");
+                System.out.println(lastMonth + " hell");
+                int i;
+                for(i = 0; i < headerRow.getLastCellNum(); ++i) {
+                    Cell cell = headerRow.getCell(i);
+                    if (cell.getStringCellValue().equalsIgnoreCase(commonColumnName)) {
+                        commonColumnIndex = i;
+                        break;
+                    }
+                }
+
+                if (commonColumnIndex == -1) {
+                    throw new RuntimeException("Column not found: " + commonColumnName);
+                }
+                for(i = 1; i <= sheet.getLastRowNum(); ++i) {
+                    Row row = sheet.getRow(i);
+                    if (row != null){
+                        Map<String, Object> rowData = new HashMap();
+                        for(int j = 0; j < headerRow.getLastCellNum(); ++j) {
+                            String headerValue = headerRow.getCell(j).getStringCellValue();
+                            Cell cell = row.getCell(j);
+                            if (cell != null) {
+                                rowData.put(headerValue, getCellValue(cell));
+                            }
+                        }
+
+                        Cell commonColumnCell = row.getCell(commonColumnIndex);
+                        if (commonColumnCell != null) {
+                            Object commonColumnValue = getCellValue(commonColumnCell);
+                            data.put(commonColumnValue.toString(), rowData);
+                        }
+                    }
+                }
+                System.out.println(commonColumnName + " row count : " + i);
+            } catch (Throwable var14) {
+                if (workbook != null) {
+                    try {
+                        workbook.close();
+                    } catch (Throwable var13) {
+                        var14.addSuppressed(var13);
+                    }
+                }
+
+                throw var14;
+            }
+
+            if (workbook != null) {
+                workbook.close();
+            }
+        } catch (EncryptedDocumentException | IOException var15) {
+            var15.printStackTrace();
+        }
+
+        return data;
+    }
+
+    public String getLastMonth(String filename){
+
+        String[] months = {
+                "MESKEREM",
+                "TIKIMIT",
+                "HIDAR",
+                "TAHISAS",
+                "TIR",
+                "YEKATIT",
+                "MEGABIT",
+                "MIYAZIA",
+                "GINBOT",
+                "SENE",
+                "HAMLE",
+                "NEHASIE",
+                "PAGUME"
+        };
+        String[] day = filename.split("\\.");
+
+        org.joda.time.DateTime dtISO = new DateTime(Integer.parseInt(day[2]), Integer.parseInt(day[1]), Integer.parseInt(day[0]), 12, 0, 0, 0);
+
+        // find out what the same instant is using the Ethiopic Chronology
+        DateTime dtEthiopic = dtISO.withChronology(EthiopicChronology.getInstance());
+        System.out.println(dtEthiopic.toDateTimeISO());
+        System.out.println(dtEthiopic);
+        dtEthiopic = dtEthiopic.minusMonths(1);
+        if(dtEthiopic.getMonthOfYear() == 13){
+            dtEthiopic = dtEthiopic.minusMonths(1);
+        }
+        String lastMonth = months[dtEthiopic.getMonthOfYear() - 1] + "-" + dtEthiopic.getYearOfEra();
+        return lastMonth;
+    }
+
 }
