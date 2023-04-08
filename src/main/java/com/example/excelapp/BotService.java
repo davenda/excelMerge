@@ -52,7 +52,7 @@ public class BotService extends TelegramLongPollingBot {
             if(document.getFileName().endsWith("xlsx") ||document.getFileName().endsWith("XLSX")){
                 String fileId = document.getFileId();
                 String fileName = document.getFileName();
-                sendTextMessage(chatId, fileId);
+                sendTextMessage(chatId, "ትንሽ ይጠብቁ!");
                 if (fileId != null) {
                     InputStream fileStream = downloadExcelFile(fileId);
                     if (fileStream != null) {

@@ -18,13 +18,14 @@ public class ExcelMerger {
     public void generateGpx(String file1, String filename) throws IOException {
         String outputFilePath = filename.substring(0, filename.length() - 4) + "gpx";
         String file1ColumnName = "Business Partner";
-        Map<String, Map<String, Object>> file1Data = readExcelFile(file1, file1ColumnName);
+        Map<String, Map<String, Object>> file1Data = readExcelFile(file1, file1ColumnName, filename);
         Map<String, Map<String, Object>> file2Data = readGpsData();
         List<Map<String, Object>> mergedData = new ArrayList();
         Iterator var9 = file1Data.keySet().iterator();
 
         Map row;
         int count = 0;
+        int noGps = 0;
         while(var9.hasNext()) {
             String commonColumnValue = (String)var9.next();
             if (file2Data.containsKey(commonColumnValue)) {
@@ -71,8 +72,13 @@ public class ExcelMerger {
                 row.putAll(file2Row);
                 mergedData.add(row);
             }
+            else{
+                //System.out.println(commonColumnValue);
+                noGps++;
+            }
         }
         System.out.println("The count is : " + count);
+        System.out.println("Data with no GPS: " + noGps);
         try {
             PrintWriter writer = new PrintWriter(new File(outputFilePath));
 
@@ -117,7 +123,7 @@ public class ExcelMerger {
 
     }
 
-    private Map<String, Map<String, Object>> readExcelFile(String filePath, String commonColumnName) throws IOException {
+    private Map<String, Map<String, Object>> readExcelFile(String filePath, String commonColumnName, String fileName) throws IOException {
         Map<String, Map<String, Object>> data = new HashMap();
         Workbook workbook = null;
 
@@ -129,7 +135,7 @@ public class ExcelMerger {
                 int commonColumnIndex = -1;
                 int payStatus = -1;
                 int billMonth = -1;
-                String lastMonth = getLastMonth("21.03.2023.xlsx");
+                String lastMonth = fileName.substring(0, fileName.length() - 5);
                 System.out.println(lastMonth);
                 int i;
                 for(i = 0; i < headerRow.getLastCellNum(); ++i) {
