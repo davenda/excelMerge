@@ -5,38 +5,48 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.bots.TelegramWebhookBot;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+import org.telegram.telegrambots.meta.generics.LongPollingBot;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 @Service
-public class BotService extends TelegramLongPollingBot {
+public class BotService extends TelegramWebhookBot implements LongPollingBot {
 
     private static final String FILE_ID_REGEX = "^.*\\/file\\/([\\w-]+)\\/.*$";
 
 
     @Override
+    public String getBotPath() {
+        return BotConfig.WEBHOOK_USER; //arbitrary path to deliver updates on, username is an example.
+    }
+
+    @Override
     public String getBotToken() {
-        // return your bot's API token here
-        return "6055790040:AAF3lO6RxwixWCRBnU68kCiB3Bnm0Nko3nE";
+        return BotConfig.WEBHOOK_TOKEN;
+    }
+
+    @Override
+    public void onRegister() {
+        super.onRegister();
     }
 
     @Override
     public String getBotUsername() {
-        // return your bot's username here
-        return "MahiBot";
+        return BotConfig.WEBHOOK_USER;
     }
 
-    @Override
-    public void onUpdateReceived(Update update) {
+    public BotApiMethod<?>  onWebhookUpdateReceived(Update update) {
         // handle incoming messages here
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
@@ -81,6 +91,7 @@ public class BotService extends TelegramLongPollingBot {
                 }
             }
         }
+        return null;
     }
 
     public void sendTextMessage(String chatId, String text) {
@@ -182,6 +193,16 @@ public class BotService extends TelegramLongPollingBot {
             System.out.println("Failed to get file name. Response code: " + responseCode);
             return null;
         }
+    }
+
+    @Override
+    public void onUpdateReceived(Update update) {
+
+    }
+
+    @Override
+    public void clearWebhook() throws TelegramApiRequestException {
+
     }
 
 //    private InputStream downloadFileContent(String fileId) throws TelegramApiException {

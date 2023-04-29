@@ -30,5 +30,16 @@ public class ExcelAppApplication {
        }
     }
 
+    private static TelegramBotsApi createTelegramBotsApi() throws TelegramApiException {
+        TelegramBotsApi telegramBotsApi;
+        telegramBotsApi = createSelfSignedTelegramBotsApi();
+        telegramBotsApi.registerBot(new BotService());
+        return telegramBotsApi;
+    }
+
+    private static TelegramBotsApi createSelfSignedTelegramBotsApi() throws TelegramApiException {
+        return new TelegramBotsApi(BuildVars.pathToCertificateStore, BuildVars.certificateStorePassword, BuildVars.EXTERNALWEBHOOKURL, BuildVars.INTERNALWEBHOOKURL, BuildVars.pathToCertificatePublicKey);
+    }
+
 
 }
